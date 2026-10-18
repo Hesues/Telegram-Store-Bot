@@ -1,4 +1,3 @@
----
 # TgSHOP - Ready-made Telegram Store Bot
 
 Introducing TgSHOP, a premade Telegram shop bot with a built-in web admin panel. Customers browse products, place orders, pay and track their purchases inside Telegram, while you manage stock, orders, pricing and themes from your phone or desktop. Launch your own Telegram storefront in minutes instead of weeks.
@@ -52,20 +51,6 @@ For clients interested in purchasing the TgSHOP template, we offer a fully funct
 | `/export_orders [status\|all] [csv\|json]` | Export orders |
 | `/bulk_update_status <status> <ids...>` | Update many orders at once |
 | `/set_theme <theme>` | Change the bot theme |
-
----
-
-## Screenshots
-
-Replace the lines below with your own images (drag them into a GitHub issue or the README editor to get hosted URLs).
-
-<img width="493" height="895" alt="bot-1" src="YOUR_SCREENSHOT_URL" />
-<img width="493" height="895" alt="bot-2" src="YOUR_SCREENSHOT_URL" />
-<img width="493" height="895" alt="bot-3" src="YOUR_SCREENSHOT_URL" />
-
-<img width="1918" height="972" alt="admin-1" src="YOUR_SCREENSHOT_URL" />
-<img width="1918" height="972" alt="admin-2" src="YOUR_SCREENSHOT_URL" />
-<img width="1918" height="972" alt="admin-3" src="YOUR_SCREENSHOT_URL" />
 
 ---
 
