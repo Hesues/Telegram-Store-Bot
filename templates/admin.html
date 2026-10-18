@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script async src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#eef2f6; --card:#ffffff; --text:#14202b; --muted:#66778a; --border:#dde4ec;
+  --primary:#0e8f7e; --primary-ink:#ffffff; --primary-soft:#dff4f0;
+  --warn:#b86e00; --warn-soft:#fff1d6; --ok:#157a46; --ok-soft:#dcf5e6;
+  --bad:#c2352f; --bad-soft:#fde4e2; --info:#1f5fbf; --info-soft:#e1ecfc;
+  --shadow:0 1px 2px rgba(20,32,43,.06),0 4px 16px rgba(20,32,43,.05);
+  --radius:14px;
+}
+:root[data-theme="dark"]{
+  --bg:#0c141b; --card:#142029; --text:#e6edf3; --muted:#8a9bad; --border:#243441;
+  --primary:#2ec4ae; --primary-ink:#04201b; --primary-soft:#12342f;
+  --warn:#f5b44a; --warn-soft:#3a2c10; --ok:#4fd18a; --ok-soft:#10301f;
+  --bad:#ff7b72; --bad-soft:#3c1a19; --info:#7ab0ff; --info-soft:#14284a;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;font-family:'Manrope','Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4{margin:0;letter-spacing:-.01em}
+.muted{color:var(--muted)}
+.small{font-size:.8rem}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* ---------- Splash ---------- */
+#splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;padding:2rem;text-align:center;
+  background:radial-gradient(120% 90% at 50% 0%,#0f4f48 0%,#0a2a30 55%,#07161d 100%);color:#e9fffb;clip-path:circle(150% at 50% 50%)}
+#splash.leave{animation:iris .95s cubic-bezier(.7,0,.2,1) forwards}
+@keyframes iris{to{clip-path:circle(0% at 50% 50%)}}
+.mark{position:relative;width:92px;height:92px;display:grid;place-items:center;font-size:2.4rem}
+.mark::before,.mark::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(46,196,174,.55);animation:ring 2.2s ease-out infinite}
+.mark::after{animation-delay:1.1s}
+.mark b{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#2ec4ae,#0e8f7e);box-shadow:0 10px 30px rgba(14,143,126,.5)}
+@keyframes ring{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+.welcome{font-size:clamp(1.6rem,6vw,2.3rem);font-weight:800;opacity:0;transform:translateY(8px);animation:rise .8s .2s forwards}
+.prep{font-size:1rem;color:#a9d8d0;opacity:0;animation:rise .8s .8s forwards;min-height:1.5em}
+.prep i{display:inline-block;width:1ch;font-style:normal;animation:dots 1.2s steps(4) infinite;overflow:hidden;vertical-align:bottom;text-align:left}
+@keyframes dots{0%{width:0}100%{width:3ch}}
+@keyframes rise{to{opacity:1;transform:none}}
+.bar{width:min(300px,70vw);height:6px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;opacity:0;animation:rise .6s 1s forwards}
+.bar span{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#2ec4ae,#8ff0df);transition:width .6s ease}
+#splash.denied .mark b{background:linear-gradient(145deg,#ff7b72,#c2352f)}
+#splash.denied .mark::before,#splash.denied .mark::after{border-color:rgba(255,123,114,.55)}
+
+/* ---------- Shell ---------- */
+#app{opacity:0}
+#app.enter{animation:appIn .8s .1s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes appIn{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;padding:1.2rem .9rem;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:1.2rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.05rem;padding:.2rem .5rem}
+.brand span{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--primary-ink)}
+#nav{display:flex;flex-direction:column;gap:.25rem}
+#nav button{display:flex;align-items:center;gap:.7rem;padding:.65rem .8rem;border:0;border-radius:10px;background:none;cursor:pointer;color:var(--muted);font-weight:600;text-align:left;position:relative}
+#nav button:hover{background:var(--bg)}
+#nav button.active{background:var(--primary-soft);color:var(--primary)}
+#nav .ico{font-size:1.1rem;width:1.4rem;text-align:center}
+.badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--bad);color:#fff;font-size:.7rem;font-weight:800;display:none;place-items:center}
+.badge.show{display:grid}
+.main{padding:1.4rem 1.6rem 3rem;max-width:1180px;width:100%}
+.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.top h2{font-size:1.5rem;font-weight:800}
+.top .tools{display:flex;gap:.5rem}
+.ibtn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:1.05rem}
+.ibtn:hover{border-color:var(--primary)}
+.ibtn.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Components ---------- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:.8rem}
+.card h3 small{font-weight:500;color:var(--muted);margin-left:.4rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.9rem;margin-bottom:1.1rem}
+.stat{display:flex;flex-direction:column;gap:.25rem}
+.stat .lbl{font-size:.82rem;color:var(--muted);font-weight:600}
+.stat .val{font-size:1.55rem;font-weight:800;letter-spacing:-.02em}
+.stat.alert .val{color:var(--bad)}
+.stat.good .val{color:var(--primary)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:1rem;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:0;border-radius:10px;padding:.55rem 1rem;background:var(--primary);color:var(--primary-ink);font-weight:700;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn.ghost:hover{border-color:var(--primary);filter:none}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.sm{padding:.35rem .7rem;font-size:.82rem;border-radius:8px}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{padding:.55rem .75rem;border-radius:10px;border:1px solid var(--border);background:var(--bg);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:0;border-color:transparent}
+textarea{width:100%;min-height:110px;resize:vertical}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.row.end{justify-content:flex-end;margin-top:1rem}
+.row .grow{flex:1;min-width:140px}
+.pill{display:inline-block;padding:.15rem .6rem;border-radius:99px;font-size:.75rem;font-weight:700;background:var(--bg);color:var(--muted)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap}
+.chip{border:1px solid var(--border);background:var(--card);border-radius:99px;padding:.35rem .85rem;font-weight:600;font-size:.85rem;cursor:pointer;color:var(--muted)}
+.chip.active{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+.chip b{opacity:.75;margin-left:.3rem;font-weight:700}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:.65rem .8rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:.78rem;color:var(--muted);font-weight:700;background:var(--bg);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:color-mix(in srgb,var(--primary) 5%,transparent)}
+.empty{padding:2rem 1rem;text-align:center;color:var(--muted)}
+.list{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;gap:.7rem;padding:.65rem 0;border-bottom:1px solid var(--border)}
+.item:last-child{border-bottom:0}
+.item .grow{flex:1;min-width:0}
+.item .t{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:3px;margin-bottom:1rem}
+.tabs button{border:0;background:none;padding:.4rem .9rem;border-radius:8px;font-weight:700;color:var(--muted);cursor:pointer}
+.tabs button.active{background:var(--primary);color:var(--primary-ink)}
+.chartbox{position:relative;height:260px}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.6rem}
+.themecard{border:2px solid var(--border);border-radius:12px;padding:.8rem;cursor:pointer;background:var(--bg);font-weight:700;text-align:center}
+.themecard:hover{border-color:var(--primary)}
+.themecard.active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
+.qrbox{width:190px;height:190px;border:2px dashed var(--border);border-radius:14px;display:grid;place-items:center;overflow:hidden;background:#fff;color:#99a;text-align:center;font-size:.8rem;padding:.5rem}
+.qrbox img{width:100%;height:100%;object-fit:contain}
+.switch{position:relative;width:46px;height:26px;flex:none}
+.switch input{opacity:0;position:absolute;inset:0;cursor:pointer;margin:0;z-index:1}
+.switch i{position:absolute;inset:0;border-radius:99px;background:var(--border);transition:.2s}
+.switch i::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.switch input:checked+i{background:var(--primary)}
+.switch input:checked+i::after{transform:translateX(20px)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:.45rem .8rem;font-size:.9rem}
+.kv dt{color:var(--muted);font-weight:600}
+.kv dd{margin:0;word-break:break-word}
+.danger-zone{border-color:var(--bad)}
+.danger-zone h3{color:var(--bad)}
+
+/* modal + toast */
+#modal-root .overlay{position:fixed;inset:0;background:rgba(5,12,18,.55);display:grid;place-items:center;padding:1rem;z-index:50;animation:fade .15s}
+#modal-root .modal{background:var(--card);border-radius:16px;padding:1.3rem;width:min(520px,100%);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .18s}
+.modal h3{font-size:1.15rem;margin-bottom:.7rem}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}}
+#toasts{position:fixed;right:1rem;top:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:200;max-width:min(380px,calc(100vw - 2rem))}
+.toast{padding:.75rem 1rem;border-radius:12px;background:var(--text);color:var(--bg);font-weight:600;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:pop .2s}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.bad{background:var(--bad);color:#fff}
+.toast.info{background:var(--info);color:#fff}
+
+/* ---------- Mobile ---------- */
+@media (max-width:820px){
+  .shell{grid-template-columns:1fr}
+  .side{position:fixed;inset:auto 0 0 0;height:auto;z-index:30;padding:.3rem .4rem calc(.3rem + env(safe-area-inset-bottom,0px));border-right:0;border-top:1px solid var(--border);flex-direction:row}
+  .brand{display:none}
+  #nav{flex-direction:row;width:100%;justify-content:space-between}
+  #nav button{flex:1;flex-direction:column;gap:.1rem;padding:.4rem .1rem;font-size:.66rem;align-items:center;justify-content:center}
+  #nav .badge{position:absolute;top:2px;right:calc(50% - 22px);margin:0;min-width:17px;height:17px;font-size:.62rem}
+  .main{padding:1rem .9rem calc(5.5rem + env(safe-area-inset-bottom,0px))}
+  .top{padding-top:env(safe-area-inset-top,0px)}
+  .top h2{font-size:1.25rem}
+  .kv{grid-template-columns:90px 1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  #splash.leave{animation-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- Splash -->
+<div id="splash" role="status" aria-live="polite">
+  <div class="mark"><b>🛍️</b></div>
+  <div class="welcome">Welcome, <span id="welcomeName">admin</span>...</div>
+  <div class="prep"><span id="prepText">Preparing your admin panel</span><i>...</i></div>
+  <div class="bar"><span id="prepBar"></span></div>
+</div>
+
+<!-- App -->
+<div id="app" hidden>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand" style="display: flex; align-items: center; gap: 8px; width: 100%; overflow: hidden; position: relative;">
+        <img src="/static/img/logo.png" alt="Logo" style="height: 28px; width: auto; object-fit: contain; flex-shrink: 0;">
+        <span style="font-weight: 700; font-size: 14px; white-space: nowrap; color: inherit; background: transparent !important; width: auto !important; height: auto !important; border-radius: 0 !important; display: inline !important;">CUBESANDSEAS</span>
+      </div>
+      <nav id="nav" aria-label="Main"></nav>
+    </aside>
+    <main class="main">
+      <div class="top">
+        <h2 id="pageTitle">Home</h2>
+        <div class="tools">
+          <button class="ibtn" id="refreshBtn" title="Refresh data" aria-label="Refresh data">⟳</button>
+          <button class="ibtn" id="themeBtn" title="Light / dark mode" aria-label="Toggle light or dark mode">🌓</button>
+        </div>
+      </div>
+      <div id="page"></div>
+    </main>
+  </div>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<div id="modal-root"></div>
+
+<script>
+/* =====================================================================
+   ENDPOINTS
+   Existing ones are already in your main.py. The ones marked NEW are
+   features I added — add them in main.py (see my notes). Until you do,
+   the panel shows a friendly "endpoint not found" message instead of breaking.
+   ===================================================================== */
+const API = {
+  auth:        '/auth',                  // existing  POST {token}
+  products:    '/products',              // existing  GET
+  orders:      '/orders',                // existing  GET ?status=
+  stats:       '/statistics',            // existing  GET
+  resetStock:  '/reset-all-stock',       // existing  GET
+  restockAll:  '/restock-all-products',  // existing  POST {stock}
+  restockOne:  '/restock-product',       // existing  POST {pr_key, quantity}
+
+  updateOrder: '/update-order',          // NEW  POST {id, status, tracking?}
+  updatePrice: '/update-price',          // NEW  POST {key, price}
+  addProduct:  '/add-product',           // NEW  POST {key, name, price, stock}
+  delProduct:  '/delete-product',        // NEW  POST {key}
+  themes:      '/themes',                // NEW  GET  -> ["default","dark"] or {themes:[...], current:"x"}
+  setTheme:    '/set-theme',             // NEW  POST {theme}
+  qr:          '/qr',                    // NEW  GET  -> current QR image
+  setQr:       '/set-qr',                // NEW  POST multipart: file field "qr"
+  broadcast:   '/broadcast',             // NEW  POST {message}
+  settings:    '/settings'               // NEW  GET / POST {maintenance: true|false}
+};
+const POLL_MS = 30000; // auto-refresh orders every 30s
+
+/* ---------- helpers ---------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const peso = n => '₱' + (Number(n) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const num  = n => (Number(n) || 0).toLocaleString();
+const lc   = s => String(s ?? '').toLowerCase();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const parseDate = v => { if (!v) return new Date(NaN); return new Date(String(v).replace(' ', 'T')); };
+const tg = () => window.Telegram && window.Telegram.WebApp;
+
+const qs = new URLSearchParams(location.search);
+const TOKEN = qs.get('token'), USER_ID = qs.get('user_id');
+
+const prefs = (() => {
+  let p = {};
+  try { p = JSON.parse(localStorage.getItem('adminPrefs') || '{}'); } catch {}
+  return Object.assign({dark: null, lowStock: 5, autoRefresh: true}, p);
+})();
+function savePrefs() { try { localStorage.setItem('adminPrefs', JSON.stringify(prefs)); } catch {} }
+
+async function api(endpoint, method = 'GET', data = null) {
+  const o = {method, headers: {}};
+  if (TOKEN) o.headers['Authorization'] = 'Bearer ' + TOKEN;   // main.py checks this on every endpoint
+  if (data instanceof FormData) o.body = data;
+  else if (data) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(data); }
+  const res = await fetch(endpoint, o);
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    if (res.status === 401) msg = 'Session expired. Close the panel and reopen it with /admindashboard.';
+    else { try { const j = await res.clone().json(); if (j && (j.error || j.message)) msg = j.error || j.message; } catch {} }
+    const e = new Error(msg);
+    e.status = res.status;
+    throw e;
+  }
+  const ct = res.headers.get('Content-Type') || '';
+  if (!ct.includes('json')) return res.text();
+  const j = await res.json();
+  if (j && j.success === false) throw new Error(j.message || j.error || 'Request failed');
+  return j;
+}
+function failToast(e, what) {
+  if (e && (e.status === 404 || e.status === 405))
+    toast(`"${what}" isn't available yet — add the ${e.status === 404 ? 'endpoint' : 'route method'} in main.py first.`, 'bad');
+  else toast(`Couldn't ${what}: ${e.message || e}`, 'bad');
+}
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), 4200);
+}
+function haptic(kind = 'success') { try { tg().HapticFeedback.notificationOccurred(kind); } catch {} }
+
+function openModal(html, {onClose} = {}) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  $('#modal-root').appendChild(overlay);
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; overlay.remove(); onClose && onClose(); };
+  overlay.addEventListener('mousedown', e => { if (e.target === overlay) close(); });
+  overlay._close = close;
+  return {el: $('.modal', overlay), close};
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { const o = $$('#modal-root .overlay').pop(); o && o._close(); }
+});
+function confirmDialog({title, message, confirmText = 'Confirm', danger = false, typeWord = null}) {
+  return new Promise(resolve => {
+    let result = false;
+    const m = openModal(`
+      <h3>${esc(title)}</h3>
+      <p class="muted" style="margin:0 0 .8rem">${esc(message)}</p>
+      ${typeWord ? `<input type="text" id="cw" style="width:100%" placeholder='Type "${esc(typeWord)}" to continue' autocomplete="off">` : ''}
+      <div class="row end">
+        <button class="btn ghost" data-m="no">Cancel</button>
+        <button class="btn ${danger ? 'danger' : ''}" data-m="yes" ${typeWord ? 'disabled' : ''}>${esc(confirmText)}</button>
+      </div>`, {onClose: () => resolve(result)});
+    const yes = $('[data-m=yes]', m.el);
+    if (typeWord) $('#cw', m.el).addEventListener('input', e => { yes.disabled = e.target.value.trim() !== typeWord; });
+    $('[data-m=no]', m.el).onclick = () => m.close();
+    yes.onclick = () => { result = true; m.close(); };
+  });
+}
+
+/* ---------- state ---------- */
+const state = {
+  page: 'dashboard', products: [], orders: [], stats: null,
+  statusFilter: 'all', search: '', from: '', to: '', range: 'daily',
+  knownPending: null, charts: {}
+};
+const PAGES = [
+  ['dashboard', '🏠', 'Home'], ['orders', '🧾', 'Orders'], ['stock', '📦', 'Stock'],
+  ['products', '🏷️', 'Products'], ['stats', '📊', 'Stats'], ['settings', '⚙️', 'Settings']
+];
+const TITLES = {dashboard: 'Home', orders: 'Orders', stock: 'Stock', products: 'Products', stats: 'Statistics & revenue', settings: 'Settings'};
+
+/* ---------- data loaders ---------- */
+async function loadProducts() {
+  const p = await api(API.products);
+  state.products = (Array.isArray(p) ? p : []).map(x => ({id: String(x.key), name: x.name, quantity: Number(x.stock) || 0, price: Number(x.price) || 0}));
+}
+async function loadOrders() {
+  const o = await api(`${API.orders}?status=all`);
+  state.orders = (Array.isArray(o) ? o : []).sort((a, b) => parseDate(b.created_at) - parseDate(a.created_at));
+}
+async function loadStats() { state.stats = await api(API.stats); }
+
+/* ---------- order helpers ---------- */
+const isCancelled = o => /cancel|reject|refund/i.test(o.status || '');
+const orderTotal = o => parseFloat(o.total) || 0; // `total` is treated as the order's full amount (not price x qty)
+const revenueOf = list => list.filter(o => !isCancelled(o)).reduce((s, o) => s + orderTotal(o), 0);
+const statusClass = s => ({pending: 'warn', confirmed: 'info', delivered: 'ok', cancelled: 'bad'}[lc(s)] || '');
+const pendingOrders = () => state.orders.filter(o => lc(o.status) === 'pending');
+const lowStockItems = () => state.products.filter(p => p.quantity <= prefs.lowStock);
+const stockPill = q => q <= 0 ? '<span class="pill bad">Out of stock</span>' : q <= prefs.lowStock ? '<span class="pill warn">Low</span>' : '<span class="pill ok">OK</span>';
+
+function updateBadge() {
+  const n = pendingOrders().length;
+  $$('#nav [data-page=orders] .badge').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('show', n > 0); });
+}
+
+async function setOrderStatus(id, status, tracking) {
+  try {
+    const body = {id, status};
+    if (tracking !== undefined) body.tracking = tracking;
+    await api(API.updateOrder, 'POST', body);
+    const o = state.orders.find(x => String(x.id) === String(id));
+    if (o) { o.status = status; if (tracking !== undefined) o.tracking = tracking; }
+    haptic(); toast(`Order #${id} marked ${status}`, 'ok');
+    updateBadge(); render();
+    return true;
+  } catch (e) { failToast(e, 'update the order'); return false; }
+}
+
+/* ---------- navigation ---------- */
+function buildNav() {
+  $('#nav').innerHTML = PAGES.map(([id, ico, label]) =>
+    `<button data-page="${id}"><span class="ico">${ico}</span><span>${label}</span>${id === 'orders' ? '<span class="badge"></span>' : ''}</button>`).join('');
+  $('#nav').addEventListener('click', e => {
+    const b = e.target.closest('button[data-page]'); if (!b) return;
+    go(b.dataset.page);
+  });
+}
+function go(page) {
+  state.page = page;
+  $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  $('#pageTitle').textContent = TITLES[page];
+  render();
+  window.scrollTo({top: 0});
+}
+function destroyCharts() { Object.values(state.charts).forEach(c => c.destroy()); state.charts = {}; }
+function render() {
+  destroyCharts();
+  const el = $('#page');
+  ({dashboard: pageDashboard, orders: pageOrders, stock: pageStock, products: pageProducts, stats: pageStats, settings: pageSettings})[state.page](el);
+  updateBadge();
+}
+async function refreshAll(manual) {
+  const btn = $('#refreshBtn'); btn.classList.add('spin');
+  try {
+    await Promise.all([loadProducts(), loadOrders(), loadStats().catch(() => {})]);
+    syncKnownPending(false);
+    render();
+    if (manual) toast('Data refreshed', 'ok');
+  } catch (e) { toast('Refresh failed: ' + e.message, 'bad'); }
+  btn.classList.remove('spin');
+}
+function syncKnownPending(notify) {
+  const ids = new Set(pendingOrders().map(o => String(o.id)));
+  if (state.knownPending && notify) {
+    const fresh = [...ids].filter(i => !state.knownPending.has(i));
+    if (fresh.length) { toast(`🔔 ${fresh.length} new pending order${fresh.length > 1 ? 's' : ''}`, 'info'); haptic('warning'); }
+  }
+  state.knownPending = ids;
+}
+async function pollOrders() {
+  if (!prefs.autoRefresh || document.hidden || $('#modal-root .overlay')) return;
+  try {
+    await loadOrders();
+    syncKnownPending(true);
+    updateBadge();
+    if (state.page === 'dashboard') render();
+    else if (state.page === 'orders') renderOrdersTable();
+  } catch {}
+}
+
+/* =====================================================================
+   PAGE: HOME
+   ===================================================================== */
+function pageDashboard(el) {
+  const sod = new Date(); sod.setHours(0, 0, 0, 0);
+  const today = state.orders.filter(o => parseDate(o.created_at) >= sod);
+  const pend = pendingOrders();
+  const low = lowStockItems();
+  el.innerHTML = `
+    <div class="cards">
+      <div class="card stat"><span class="lbl">Orders today</span><span class="val">${num(today.length)}</span></div>
+      <div class="card stat good"><span class="lbl">Revenue today</span><span class="val">${peso(revenueOf(today))}</span></div>
+      <div class="card stat ${pend.length ? 'alert' : ''}"><span class="lbl">Waiting for you</span><span class="val">${num(pend.length)}</span></div>
+      <div class="card stat ${low.length ? 'alert' : ''}"><span class="lbl">Low or out of stock</span><span class="val">${num(low.length)}</span></div>
+    </div>
+    <div class="cols">
+      <div class="card">
+        <h3>Pending orders <small>${pend.length}</small></h3>
+        ${pend.length ? `<div class="list">${pend.slice(0, 6).map(o => `
+          <div class="item">
+            <div class="grow"><div class="t">#${esc(o.id)} · ${esc(o.name)}</div><div class="muted small">${esc(o.product)} × ${esc(o.qty)} · ${peso(orderTotal(o))}</div></div>
+            <button class="btn sm ghost" data-act="view-order" data-id="${esc(o.id)}">View</button>
+            <button class="btn sm" data-act="quick-confirm" data-id="${esc(o.id)}">Confirm</button>
+          </div>`).join('')}</div>
+          ${pend.length > 6 ? `<div class="row end"><button class="btn ghost sm" data-act="goto" data-page="orders">See all ${pend.length}</button></div>` : ''}`
+        : '<div class="empty">No pending orders. You\'re all caught up.</div>'}
+      </div>
+      <div class="card">
+        <h3>Needs restocking <small>≤ ${prefs.lowStock} left</small></h3>
+        ${low.length ? `<div class="list">${low.slice(0, 7).map(p => `
+          <div class="item"><div class="grow"><div class="t">${esc(p.name)}</div><div class="muted small">ID: ${esc(p.id)}</div></div>
+          <b>${num(p.quantity)}</b>${stockPill(p.quantity)}</div>`).join('')}</div>
+          <div class="row end"><button class="btn sm" data-act="goto" data-page="stock">Restock</button></div>`
+        : '<div class="empty">Every product has enough stock.</div>'}
+      </div>
+    </div>
+    <div class="card">
+      <h3>Quick actions</h3>
+      <div class="row">
+        <button class="btn ghost" data-act="goto" data-page="settings" data-focus="qr">Change payment QR</button>
+        <button class="btn ghost" data-act="goto" data-page="settings" data-focus="theme">Change bot theme</button>
+        <button class="btn ghost" data-act="goto" data-page="settings" data-focus="broadcast">Send announcement</button>
+        <button class="btn ghost" data-act="goto" data-page="products">Add product</button>
+      </div>
+    </div>`;
+}
+
+/* =====================================================================
+   PAGE: ORDERS
+   ===================================================================== */
+const STATUS_LIST = ['all', 'pending', 'confirmed', 'delivered', 'cancelled'];
+function pageOrders(el) {
+  const counts = s => s === 'all' ? state.orders.length : state.orders.filter(o => lc(o.status) === s).length;
+  el.innerHTML = `
+    <div class="row" style="margin-bottom:.8rem">
+      <div class="chips" id="statusChips">${STATUS_LIST.map(s =>
+        `<button class="chip ${state.statusFilter === s ? 'active' : ''}" data-status="${s}">${s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1)}<b>${counts(s)}</b></button>`).join('')}</div>
+    </div>
+    <div class="row" style="margin-bottom:.8rem">
+      <input type="search" id="oSearch" class="grow" placeholder="Search name, product, contact, ID..." value="${esc(state.search)}">
+      <label class="muted small">From <input type="date" id="oFrom" value="${esc(state.from)}"></label>
+      <label class="muted small">To <input type="date" id="oTo" value="${esc(state.to)}"></label>
+      <button class="btn ghost" id="oExport">Export CSV</button>
+    </div>
+    <div class="muted small" id="oCount" style="margin-bottom:.5rem"></div>
+    <div id="ordersTable"></div>`;
+  $('#statusChips').onclick = e => {
+    const b = e.target.closest('[data-status]'); if (!b) return;
+    state.statusFilter = b.dataset.status;
+    $$('#statusChips .chip').forEach(c => c.classList.toggle('active', c === b));
+    renderOrdersTable();
+  };
+  $('#oSearch').oninput = e => { state.search = e.target.value; renderOrdersTable(); };
+  $('#oFrom').onchange = e => { state.from = e.target.value; renderOrdersTable(); };
+  $('#oTo').onchange = e => { state.to = e.target.value; renderOrdersTable(); };
+  $('#oExport').onclick = exportOrdersCSV;
+  renderOrdersTable();
+}
+function filteredOrders() {
+  const q = lc(state.search.trim());
+  const from = state.from ? new Date(state.from + 'T00:00:00') : null;
+  const to = state.to ? new Date(state.to + 'T23:59:59') : null;
+  return state.orders.filter(o => {
+    if (state.statusFilter !== 'all' && lc(o.status) !== state.statusFilter) return false;
+    if (q && !Object.values(o).some(v => lc(v).includes(q))) return false;
+    const d = parseDate(o.created_at);
+    if (from && !(d >= from)) return false;
+    if (to && !(d <= to)) return false;
+    return true;
+  });
+}
+function renderOrdersTable() {
+  const box = $('#ordersTable'); if (!box) return;
+  const list = filteredOrders();
+  $('#oCount').textContent = `${list.length} order${list.length === 1 ? '' : 's'} · ${peso(revenueOf(list))} revenue`;
+  $$('#statusChips .chip').forEach(c => {
+    const s = c.dataset.status;
+    $('b', c).textContent = s === 'all' ? state.orders.length : state.orders.filter(o => lc(o.status) === s).length;
+  });
+  if (!list.length) { box.innerHTML = '<div class="tablewrap"><div class="empty">No orders match these filters.</div></div>'; return; }
+  box.innerHTML = `<div class="tablewrap"><table>
+    <thead><tr><th>ID</th><th>Customer</th><th>Product</th><th>Qty</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th></th></tr></thead>
+    <tbody>${list.map(o => `<tr>
+      <td>#${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.product)}</td><td>${esc(o.qty)}</td>
+      <td>${peso(orderTotal(o))}</td><td>${esc(o.payment)}</td>
+      <td><span class="pill ${statusClass(o.status)}">${esc(o.status)}</span></td>
+      <td>${esc(o.created_at)}</td>
+      <td><button class="btn sm ghost" data-act="view-order" data-id="${esc(o.id)}">Open</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function exportOrdersCSV() {
+  const list = filteredOrders();
+  if (!list.length) return toast('Nothing to export', 'bad');
+  const cols = ['id','user_id','name','contact','address','zip','product','qty','total','courier','delivery','payment','status','created_at','tracking'];
+  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [cols.join(','), ...list.map(o => cols.map(c => cell(o[c])).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+  a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast(`Exported ${list.length} orders`, 'ok');
+}
+function openOrder(id) {
+  const o = state.orders.find(x => String(x.id) === String(id)); if (!o) return;
+  const rows = [['Customer', o.name], ['Contact', o.contact], ['Address', [o.address, o.zip].filter(Boolean).join(' ')],
+    ['Product', `${o.product} × ${o.qty}`], ['Total', peso(orderTotal(o))], ['Payment', o.payment], ['Courier', o.courier],
+    ['Delivery', o.delivery], ['User ID', o.user_id], ['Created', o.created_at]];
+  const m = openModal(`
+    <h3>Order #${esc(o.id)} <span class="pill ${statusClass(o.status)}">${esc(o.status)}</span></h3>
+    <dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v) || '—'}</dd>`).join('')}</dl>
+    <div class="row" style="margin-top:1rem">
+      <input type="text" id="trk" class="grow" placeholder="Tracking number" value="${esc(o.tracking)}">
+      <button class="btn ghost sm" id="saveTrk">Save tracking</button>
+    </div>
+    <div class="row end">
+      <button class="btn ghost" data-m="close">Close</button>
+      ${lc(o.status) !== 'cancelled' ? '<button class="btn danger" data-st="Cancelled">Cancel order</button>' : ''}
+      ${lc(o.status) === 'pending' ? '<button class="btn" data-st="Confirmed">Confirm</button>' : ''}
+      ${lc(o.status) !== 'delivered' && lc(o.status) !== 'cancelled' ? '<button class="btn" data-st="Delivered">Mark delivered</button>' : ''}
+    </div>`);
+  $('[data-m=close]', m.el).onclick = m.close;
+  $('#saveTrk', m.el).onclick = async () => { if (await setOrderStatus(o.id, o.status, $('#trk', m.el).value.trim())) m.close(); };
+  $$('[data-st]', m.el).forEach(b => b.onclick = async () => {
+    const st = b.dataset.st;
+    if (st === 'Cancelled' && !await confirmDialog({title: `Cancel order #${o.id}?`, message: 'The customer may be notified, depending on your bot.', confirmText: 'Cancel order', danger: true})) return;
+    if (await setOrderStatus(o.id, st, $('#trk', m.el) ? $('#trk', m.el).value.trim() : undefined)) m.close();
+  });
+}
+
+/* =====================================================================
+   PAGE: STOCK
+   ===================================================================== */
+function pageStock(el) {
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Current stock</h3>
+      ${state.products.length ? `<div class="tablewrap"><table>
+        <thead><tr><th>ID</th><th>Product</th><th>Qty</th><th>Status</th><th>Add stock</th></tr></thead>
+        <tbody>${state.products.map(p => `<tr data-id="${esc(p.id)}">
+          <td>${esc(p.id)}</td><td>${esc(p.name)}</td><td><b>${num(p.quantity)}</b></td><td>${stockPill(p.quantity)}</td>
+          <td><div class="row" style="flex-wrap:nowrap">
+            <input type="number" min="1" placeholder="Qty" style="width:90px">
+            <button class="btn sm" data-act="restock">Add</button></div></td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty">No products yet. Add one in the Products tab.</div>'}
+    </div>
+    <div class="cols">
+      <div class="card">
+        <h3>Add stock to every product</h3>
+        <div class="row"><input type="number" id="allQty" min="1" placeholder="Quantity" class="grow"><button class="btn" data-act="restock-all">Add to all</button></div>
+      </div>
+      <div class="card danger-zone">
+        <h3>Reset all stock to 0</h3>
+        <p class="muted small" style="margin-top:0">Sets every product's quantity to zero. This can't be undone.</p>
+        <button class="btn danger" data-act="reset-stock">Reset all stock</button>
+      </div>
+    </div>`;
+}
+async function doRestock(id, qty) {
+  try {
+    await api(API.restockOne, 'POST', {pr_key: id, quantity: qty});
+    const p = state.products.find(x => x.id === id); if (p) p.quantity += qty;
+    haptic(); toast(`Added ${qty} to ${p ? p.name : id}`, 'ok'); render();
+  } catch (e) { failToast(e, 'restock the product'); }
+}
+
+/* =====================================================================
+   PAGE: PRODUCTS
+   ===================================================================== */
+function pageProducts(el) {
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Add a product</h3>
+      <div class="row">
+        <input type="text" id="npKey" placeholder="ID (e.g. basic01)" style="width:140px">
+        <input type="text" id="npName" placeholder="Product name" class="grow">
+        <input type="number" id="npPrice" min="0" step="0.01" placeholder="Price (₱)" style="width:120px">
+        <input type="number" id="npStock" min="0" placeholder="Stock" style="width:100px">
+        <button class="btn" data-act="add-product">Add product</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Listings <small>${state.products.length}</small></h3>
+      ${state.products.length ? `<div class="tablewrap"><table>
+        <thead><tr><th>ID</th><th>Product</th><th>Stock</th><th>Price (₱)</th><th></th></tr></thead>
+        <tbody>${state.products.map(p => `<tr data-id="${esc(p.id)}">
+          <td>${esc(p.id)}</td><td>${esc(p.name)}</td><td>${num(p.quantity)}</td>
+          <td><input type="number" min="0" step="0.01" value="${p.price}" style="width:110px"></td>
+          <td><div class="row" style="flex-wrap:nowrap">
+            <button class="btn sm" data-act="save-price">Save price</button>
+            <button class="btn sm danger" data-act="del-product">Delete</button></div></td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty">No products yet. Add your first one above.</div>'}
+    </div>`;
+}
+
+/* =====================================================================
+   PAGE: STATS
+   ===================================================================== */
+function buckets(range) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(), d = now.getDate(), b = [];
+  const fmt = (dt, o) => dt.toLocaleDateString(undefined, o);
+  if (range === 'daily') for (let i = 6; i >= 0; i--) { const s = new Date(y, m, d - i); b.push({label: fmt(s, {month: 'short', day: 'numeric'}), s, e: new Date(y, m, d - i + 1)}); }
+  if (range === 'weekly') { const mon = d - ((now.getDay() + 6) % 7); for (let i = 7; i >= 0; i--) { const s = new Date(y, m, mon - i * 7); b.push({label: 'Wk ' + fmt(s, {month: 'short', day: 'numeric'}), s, e: new Date(y, m, mon - i * 7 + 7)}); } }
+  if (range === 'monthly') for (let i = 11; i >= 0; i--) { const s = new Date(y, m - i, 1); b.push({label: fmt(s, {month: 'short', year: '2-digit'}), s, e: new Date(y, m - i + 1, 1)}); }
+  if (range === 'yearly') for (let i = 4; i >= 0; i--) b.push({label: String(y - i), s: new Date(y - i, 0, 1), e: new Date(y - i + 1, 0, 1)});
+  return b;
+}
+const RANGE_LABEL = {daily: 'last 7 days', weekly: 'last 8 weeks', monthly: 'last 12 months', yearly: 'last 5 years'};
+function pageStats(el) {
+  const bs = buckets(state.range);
+  const start = bs[0].s, end = bs[bs.length - 1].e;
+  const inWin = state.orders.filter(o => { const d = parseDate(o.created_at); return d >= start && d < end; });
+  const valid = inWin.filter(o => !isCancelled(o));
+  const rev = revenueOf(inWin);
+  const st = state.stats || {};
+  const totalUsers = Number(st.users_count ?? (st.users ? st.users.length : 0)) || 0;
+  const returning = Number(st.returning_customers) || 0;
+
+  el.innerHTML = `
+    <div class="tabs" id="rangeTabs">${Object.keys(RANGE_LABEL).map(r => `<button data-r="${r}" class="${state.range === r ? 'active' : ''}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div>
+    <div class="muted small" style="margin:-.4rem 0 .8rem">Showing the ${RANGE_LABEL[state.range]}. Cancelled orders aren't counted as revenue.</div>
+    <div class="cards">
+      <div class="card stat"><span class="lbl">Orders</span><span class="val">${num(inWin.length)}</span></div>
+      <div class="card stat good"><span class="lbl">Revenue</span><span class="val">${peso(rev)}</span></div>
+      <div class="card stat"><span class="lbl">Average order</span><span class="val">${peso(valid.length ? rev / valid.length : 0)}</span></div>
+      <div class="card stat"><span class="lbl">Products</span><span class="val">${num(state.products.length)}</span></div>
+      <div class="card stat"><span class="lbl">Total users</span><span class="val">${num(totalUsers)}</span></div>
+      <div class="card stat"><span class="lbl">Returning customers</span><span class="val">${num(returning)}</span></div>
+    </div>
+    <div class="cols">
+      <div class="card" style="grid-column:1/-1"><h3>Revenue</h3><div class="chartbox"><canvas id="cRev"></canvas></div></div>
+      <div class="card"><h3>Best sellers <small>by quantity</small></h3><div class="chartbox"><canvas id="cTop"></canvas></div></div>
+      <div class="card"><h3>Order status</h3><div class="chartbox"><canvas id="cStatus"></canvas></div></div>
+      <div class="card"><h3>New vs returning users</h3><div class="chartbox"><canvas id="cUsers"></canvas></div></div>
+    </div>`;
+  $('#rangeTabs').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; state.range = b.dataset.r; render(); };
+
+  if (!window.Chart) { toast('Charts failed to load (check your connection).', 'bad'); return; }
+  const cs = getComputedStyle(document.documentElement);
+  const txt = cs.getPropertyValue('--muted').trim(), grid = cs.getPropertyValue('--border').trim(), prim = cs.getPropertyValue('--primary').trim();
+  Chart.defaults.color = txt; Chart.defaults.font.family = "'Manrope','Segoe UI',sans-serif";
+  const base = {responsive: true, maintainAspectRatio: false};
+
+  state.charts.rev = new Chart($('#cRev'), {type: 'line', data: {
+    labels: bs.map(x => x.label),
+    datasets: [{label: 'Revenue (₱)', data: bs.map(x => revenueOf(state.orders.filter(o => { const d = parseDate(o.created_at); return d >= x.s && d < x.e; }))),
+      borderColor: prim, backgroundColor: prim + '22', fill: true, tension: .3, pointRadius: 3}]},
+    options: {...base, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, grid: {color: grid}}, x: {grid: {display: false}}}}});
+
+  const byProd = {};
+  valid.forEach(o => { byProd[o.product] = (byProd[o.product] || 0) + (parseInt(o.qty, 10) || 0); });
+  const top = Object.entries(byProd).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  state.charts.top = new Chart($('#cTop'), {type: 'bar', data: {labels: top.map(t => t[0]), datasets: [{data: top.map(t => t[1]), backgroundColor: prim, borderRadius: 6}]},
+    options: {...base, indexAxis: 'y', plugins: {legend: {display: false}}, scales: {x: {beginAtZero: true, grid: {color: grid}, ticks: {precision: 0}}, y: {grid: {display: false}}}}});
+
+  const pal = {pending: '#f5b44a', confirmed: '#4c8dff', delivered: '#2ec48a', cancelled: '#ff7b72'};
+  const sc = {}; inWin.forEach(o => { const k = lc(o.status) || 'unknown'; sc[k] = (sc[k] || 0) + 1; });
+  state.charts.status = new Chart($('#cStatus'), {type: 'doughnut', data: {labels: Object.keys(sc), datasets: [{data: Object.values(sc), backgroundColor: Object.keys(sc).map(k => pal[k] || '#8a9bad'), borderWidth: 0}]},
+    options: {...base, cutout: '62%', plugins: {legend: {position: 'bottom'}}}});
+
+  state.charts.users = new Chart($('#cUsers'), {type: 'pie', data: {labels: ['New users', 'Returning'], datasets: [{data: [Math.max(totalUsers - returning, 0), returning], backgroundColor: ['#ff7b9c', '#4c8dff'], borderWidth: 0}]},
+    options: {...base, plugins: {legend: {position: 'bottom'}, tooltip: {callbacks: {label: c => `${c.label}: ${c.raw}${totalUsers ? ` (${(c.raw / totalUsers * 100).toFixed(1)}%)` : ''}`}}}}});
+}
+
+/* =====================================================================
+   PAGE: SETTINGS  (theme, QR, broadcast, maintenance, panel prefs)
+   ===================================================================== */
+function pageSettings(el) {
+  el.innerHTML = `
+    <div class="cols">
+      <div class="card" id="sec-theme">
+        <h3>Bot theme <small>same as /set_theme</small></h3>
+        <div id="themeBox" class="muted small">Loading themes…</div>
+      </div>
+      <div class="card" id="sec-qr">
+        <h3>Payment QR</h3>
+        <div class="row" style="align-items:flex-start;gap:1rem">
+          <div>
+            <div class="muted small" style="margin-bottom:.3rem">Current</div>
+            <div class="qrbox" id="qrCurrent">Loading…</div>
+          </div>
+          <div class="grow">
+            <div class="muted small" style="margin-bottom:.3rem">New image</div>
+            <div class="qrbox" id="qrPreview">No file chosen</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:.8rem">
+          <input type="file" id="qrFile" accept="image/png,image/jpeg,image/webp" class="grow">
+          <button class="btn" id="qrSave" disabled>Replace QR</button>
+        </div>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="card" id="sec-broadcast">
+        <h3>Send announcement</h3>
+        <textarea id="bcMsg" placeholder="Message to send to all bot users…"></textarea>
+        <div class="row end"><button class="btn" id="bcSend">Send to all users</button></div>
+      </div>
+      <div class="card">
+        <h3>Bot controls</h3>
+        <div class="item"><div class="grow"><div class="t">Maintenance mode</div><div class="muted small" id="mmHint">Pause ordering while you update products or prices.</div></div>
+          <label class="switch"><input type="checkbox" id="mmToggle" disabled><i></i></label></div>
+        <h3 style="margin-top:1rem">This panel</h3>
+        <div class="item"><div class="grow"><div class="t">Dark mode</div></div><label class="switch"><input type="checkbox" id="pDark"><i></i></label></div>
+        <div class="item"><div class="grow"><div class="t">Auto-refresh orders</div><div class="muted small">Checks for new orders every 30 seconds.</div></div><label class="switch"><input type="checkbox" id="pAuto"><i></i></label></div>
+        <div class="item"><div class="grow"><div class="t">Low stock warning</div><div class="muted small">Flag products at or below this number.</div></div><input type="number" id="pLow" min="0" style="width:80px"></div>
+      </div>
+    </div>`;
+
+  // panel prefs
+  $('#pDark').checked = document.documentElement.dataset.theme === 'dark';
+  $('#pDark').onchange = e => setDark(e.target.checked);
+  $('#pAuto').checked = prefs.autoRefresh;
+  $('#pAuto').onchange = e => { prefs.autoRefresh = e.target.checked; savePrefs(); };
+  $('#pLow').value = prefs.lowStock;
+  $('#pLow').onchange = e => { prefs.lowStock = Math.max(0, parseInt(e.target.value, 10) || 0); savePrefs(); toast('Low stock warning saved', 'ok'); };
+
+  loadThemes(); loadQr(); loadMaintenance();
+
+  // QR upload
+  const file = $('#qrFile'), prev = $('#qrPreview'), save = $('#qrSave');
+  file.onchange = () => {
+    const f = file.files[0]; save.disabled = true;
+    if (!f) { prev.textContent = 'No file chosen'; return; }
+    if (!/^image\/(png|jpe?g|webp)$/.test(f.type)) { toast('Please choose a PNG, JPG or WEBP image.', 'bad'); file.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { toast('That image is over 5 MB. Choose a smaller one.', 'bad'); file.value = ''; return; }
+    prev.innerHTML = `<img alt="New QR preview" src="${URL.createObjectURL(f)}">`; save.disabled = false;
+  };
+  save.onclick = async () => {
+    const f = file.files[0]; if (!f) return;
+    if (!await confirmDialog({title: 'Replace payment QR?', message: 'Customers will see the new QR on their next checkout.', confirmText: 'Replace QR'})) return;
+    const fd = new FormData(); fd.append('qr', f);
+    save.disabled = true;
+    try { await api(API.setQr, 'POST', fd); haptic(); toast('Payment QR updated', 'ok'); file.value = ''; prev.textContent = 'No file chosen'; loadQr(); }
+    catch (e) { failToast(e, 'replace the QR'); save.disabled = false; }
+  };
+
+  // Broadcast
+  $('#bcSend').onclick = async () => {
+    const msg = $('#bcMsg').value.trim();
+    if (!msg) return toast('Write a message first.', 'bad');
+    if (!await confirmDialog({title: 'Send to all users?', message: `"${msg.length > 120 ? msg.slice(0, 120) + '…' : msg}"`, confirmText: 'Send now'})) return;
+    try { const r = await api(API.broadcast, 'POST', {message: msg}); haptic(); toast(r && r.sent != null ? `Sent to ${r.sent} users` : 'Announcement sent', 'ok'); $('#bcMsg').value = ''; }
+    catch (e) { failToast(e, 'send the announcement'); }
+  };
+}
+async function loadThemes() {
+  const box = $('#themeBox'); if (!box) return;
+  const apply = async name => {
+    try { await api(API.setTheme, 'POST', {theme: name}); haptic(); toast(`Theme set to "${name}"`, 'ok'); loadThemes(); }
+    catch (e) { failToast(e, 'change the theme'); }
+  };
+  try {
+    const r = await api(API.themes);
+    const list = (Array.isArray(r) ? r : (r.themes || [])).map(t => typeof t === 'string' ? t : (t.name || t.id));
+    const cur = Array.isArray(r) ? null : (r.current || r.theme || null);
+    if (!list.length) throw new Error('empty');
+    box.className = '';
+    box.innerHTML = `<div class="themes">${list.map(t => `<button class="themecard ${t === cur ? 'active' : ''}" data-theme="${esc(t)}">${esc(t)}${t === cur ? '<div class="small">current</div>' : ''}</button>`).join('')}</div>`;
+    box.onclick = async e => { const b = e.target.closest('[data-theme]'); if (b && b.dataset.theme !== cur) apply(b.dataset.theme); };
+  } catch {
+    box.className = '';
+    box.innerHTML = `<p class="muted small" style="margin-top:0">Couldn't load the theme list, so type a theme name instead.</p>
+      <div class="row"><input type="text" id="themeName" class="grow" placeholder="Template name"><button class="btn" id="themeApply">Apply</button></div>`;
+    $('#themeApply').onclick = () => { const v = $('#themeName').value.trim(); if (v) apply(v); else toast('Enter a theme name.', 'bad'); };
+  }
+}
+function loadQr() {
+  const box = $('#qrCurrent'); if (!box) return;
+  const img = new Image();
+  img.alt = 'Current payment QR';
+  img.onload = () => { box.innerHTML = ''; box.appendChild(img); };
+  img.onerror = () => { box.textContent = 'No QR found'; };
+  img.src = `${API.qr}?token=${encodeURIComponent(TOKEN || '')}&t=${Date.now()}`;   // <img> can't send headers, so token goes in the URL
+}
+async function loadMaintenance() {
+  const t = $('#mmToggle'); if (!t) return;
+  try {
+    const s = await api(API.settings);
+    t.checked = !!s.maintenance; t.disabled = false;
+    t.onchange = async () => {
+      try { await api(API.settings, 'POST', {maintenance: t.checked}); toast(`Maintenance mode ${t.checked ? 'on' : 'off'}`, 'ok'); }
+      catch (e) { t.checked = !t.checked; failToast(e, 'update maintenance mode'); }
+    };
+  } catch { $('#mmHint').textContent = 'Not connected yet — add the /settings endpoint in main.py.'; }
+}
+
+/* ---------- dark mode ---------- */
+function setDark(on) {
+  document.documentElement.dataset.theme = on ? 'dark' : 'light';
+  prefs.dark = on; savePrefs();
+  if (state.page === 'stats') render();
+}
+
+/* ---------- global click delegation ---------- */
+$('#page').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  const rowEl = b.closest('tr');
+
+  if (act === 'goto') {
+    go(b.dataset.page);
+    if (b.dataset.focus) setTimeout(() => { const s = $('#sec-' + b.dataset.focus); s && s.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 60);
+  }
+  else if (act === 'view-order') openOrder(id);
+  else if (act === 'quick-confirm') setOrderStatus(id, 'Confirmed');
+  else if (act === 'restock') {
+    const qty = Number($('input', rowEl).value);
+    if (!(qty > 0)) return toast('Enter a quantity above 0.', 'bad');
+    doRestock(rowEl.dataset.id, qty);
+  }
+  else if (act === 'restock-all') {
+    const qty = Number($('#allQty').value);
+    if (!(qty > 0)) return toast('Enter a quantity above 0.', 'bad');
+    if (!await confirmDialog({title: `Add ${qty} to every product?`, message: `${state.products.length} products will each get +${qty}.`, confirmText: 'Add stock'})) return;
+    try { await api(API.restockAll, 'POST', {stock: qty}); state.products.forEach(p => p.quantity += qty); haptic(); toast(`Added ${qty} to all products`, 'ok'); render(); }
+    catch (er) { failToast(er, 'restock all products'); }
+  }
+  else if (act === 'reset-stock') {
+    if (!await confirmDialog({title: 'Reset all stock to 0?', message: 'Every product will show as out of stock.', confirmText: 'Reset stock', danger: true, typeWord: 'RESET'})) return;
+    try { await api(API.resetStock, 'GET'); state.products.forEach(p => p.quantity = 0); haptic('warning'); toast('All stock reset to 0', 'ok'); render(); }
+    catch (er) { failToast(er, 'reset stock'); }
+  }
+  else if (act === 'add-product') {
+    const key = $('#npKey').value.trim(), name = $('#npName').value.trim(), price = Number($('#npPrice').value), stock = Number($('#npStock').value) || 0;
+    if (!key || !name) return toast('Enter an ID and a name.', 'bad');
+    if (!(price >= 0) || $('#npPrice').value === '') return toast('Enter a price.', 'bad');
+    if (state.products.some(p => lc(p.id) === lc(key))) return toast('That ID already exists.', 'bad');
+    try { await api(API.addProduct, 'POST', {key, name, price, stock}); state.products.push({id: key, name, price, quantity: stock}); haptic(); toast(`${name} added`, 'ok'); render(); }
+    catch (er) { failToast(er, 'add the product'); }
+  }
+  else if (act === 'save-price') {
+    const price = Number($('input', rowEl).value);
+    if (!(price >= 0)) return toast('Enter a valid price.', 'bad');
+    try { await api(API.updatePrice, 'POST', {key: rowEl.dataset.id, price}); const p = state.products.find(x => x.id === rowEl.dataset.id); if (p) p.price = price; haptic(); toast('Price saved', 'ok'); }
+    catch (er) { failToast(er, 'save the price'); }
+  }
+  else if (act === 'del-product') {
+    const p = state.products.find(x => x.id === rowEl.dataset.id); if (!p) return;
+    if (!await confirmDialog({title: `Delete ${p.name}?`, message: 'It will be removed from your shop. Past orders are kept.', confirmText: 'Delete product', danger: true})) return;
+    try { await api(API.delProduct, 'POST', {key: p.id}); state.products = state.products.filter(x => x.id !== p.id); haptic('warning'); toast(`${p.name} deleted`, 'ok'); render(); }
+    catch (er) { failToast(er, 'delete the product'); }
+  }
+});
+
+/* =====================================================================
+   BOOT: splash -> auth -> load data -> iris transition
+   ===================================================================== */
+async function verifyAuthToken() {
+  if (!TOKEN || !USER_ID) return false;
+  try {
+    const res = await fetch(API.auth, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: TOKEN})});
+    const data = await res.json();
+    return !!data.success;
+  } catch { return false; }
+}
+async function boot() {
+  const w = tg(); try { w.ready(); w.expand(); } catch {}
+  const first = w && w.initDataUnsafe && w.initDataUnsafe.user && w.initDataUnsafe.user.first_name;
+  $('#welcomeName').textContent = first || 'admin';
+  const say = (t, pct) => { $('#prepText').textContent = t; $('#prepBar').style.width = pct + '%'; };
+  const minimum = sleep(3000);
+
+  setTimeout(() => say('Verifying your access', 18), 600);
+  const ok = await verifyAuthToken();
+  if (!ok) {
+    const s = $('#splash'); s.classList.add('denied');
+    $('.welcome', s).textContent = 'Access denied';
+    $('.prep', s).innerHTML = 'This panel is for admins only. Closing…';
+    await sleep(1800); try { w.close(); } catch {}
+    return;
+  }
+  say('Loading products', 45);
+  const errors = [];
+  await loadProducts().catch(e => errors.push('products'));
+  say('Loading orders', 72);
+  await loadOrders().catch(e => errors.push('orders'));
+  say('Crunching your stats', 90);
+  await loadStats().catch(() => {});
+  await minimum;
+  say('All set', 100);
+  await sleep(450);
+
+  // restore theme preference
+  const dark = prefs.dark !== null ? prefs.dark : (w && w.colorScheme ? w.colorScheme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+
+  buildNav();
+  $('#app').hidden = false;
+  go('dashboard');
+  syncKnownPending(false);
+  $('#app').classList.add('enter');
+  $('#splash').classList.add('leave');
+  await sleep(1000);
+  $('#splash').remove();
+  if (errors.length) toast(`Couldn't load ${errors.join(' and ')}. Try the refresh button.`, 'bad');
+
+  $('#refreshBtn').onclick = () => refreshAll(true);
+  $('#themeBtn').onclick = () => setDark(document.documentElement.dataset.theme !== 'dark');
+  setInterval(pollOrders, POLL_MS);
+}
+window.addEventListener('load', boot);
+</script>
+</body>
+</html>
