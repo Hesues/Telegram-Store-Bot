@@ -54,14 +54,14 @@ For clients interested in purchasing the TgSHOP template, we offer a fully funct
 
 ---
 
-Screenshots
+## Screenshots
+
 <img width="444" height="718" alt="image" src="https://github.com/user-attachments/assets/ebcf830d-b138-4b8e-927d-da7ffa785f54" />
 <img width="438" height="699" alt="image" src="https://github.com/user-attachments/assets/b2f46270-e3da-4d26-afc9-8e7c61664edf" />
 <img width="445" height="753" alt="image" src="https://github.com/user-attachments/assets/843e303a-075e-4a27-a35c-bd7f9b0c9ec4" />
 <img width="439" height="702" alt="image" src="https://github.com/user-attachments/assets/bf4761b9-812d-4325-b6fe-f4aac456ce3d" />
 <img width="441" height="712" alt="image" src="https://github.com/user-attachments/assets/88923b69-5788-4b8b-b052-8a91d215a8ed" />
 <img width="439" height="699" alt="image" src="https://github.com/user-attachments/assets/5dc2348b-24dc-4c0f-b1c5-5250f6167500" />
-
 
 ## Supported Themes
 
